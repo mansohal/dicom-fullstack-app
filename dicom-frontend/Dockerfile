@@ -3,11 +3,13 @@ FROM node:18
 
 WORKDIR /app
 
-# Copy and install dependencies
-COPY package*.json ./
-RUN npm install
+# Copy package.json first to install dependencies (Docker caching optimization)
+COPY package.json package-lock.json ./
 
-# Copy frontend code
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy the entire frontend code
 COPY . .
 
 # Build React app
