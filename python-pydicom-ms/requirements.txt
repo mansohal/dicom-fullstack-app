@@ -1,0 +1,7 @@
+Flask
+pydicom
+gunicorn
+numpy          # Optional, if used
+requests       # Optional, if used
+flask-cors     # Optional, if used
+
