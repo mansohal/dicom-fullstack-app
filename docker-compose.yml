@@ -1,12 +1,11 @@
-
 services:
   db:
     image: mysql:5.7
     container_name: dicom-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: dicom_db
+      MYSQL_ROOT_PASSWORD: Forrestgump1
+      MYSQL_DATABASE: dicomdb  # Matches Workbench
     ports:
       - "3306:3306"
     volumes:
@@ -19,38 +18,46 @@ services:
     depends_on:
       - db
     environment:
-      DB_HOST: db
-      DB_USER: root
-      DB_PASSWORD: example
-      DB_NAME: dicom_db
+      DB_HOST: db  # Use 'db' (matches service name)
+      DB_USER: manpreet
+      DB_PASSWORD: ehmeristorage1
+      DB_NAME: dicomdb
     volumes:
       - ./backend/uploads:/app/uploads
     ports:
       - "4000:4000"
+    command: >
+      sh -c "until nc -z db 3306; do sleep 3; done && node index.js"
+
+    flask:
+      build: ./python-pydicom-ms
+      container_name: dicom-flask
+      restart: always
+      depends_on:
+        - backend
+      ports:
+        - "5001:5001"  # Ensure it matches what your Flask app expects
+      working_dir: /app
+      volumes:
+        - ./python-pydicom-ms:/app
+      command: >
+        sh -c "pip install -r requirements.txt && python app.py"
+
 
   frontend:
-    build: ./dicom-frontend
-    container_name: dicom-frontend
-    restart: always
-    depends_on:
-      - backend
-    environment:
-      REACT_APP_API_URL: http://backend:4000
-    ports:
-      - "5173:5173"
+  build: ./dicom-frontend  # Path to frontend (React/Next.js/Vue)
+  container_name: dicom-frontend
+  restart: always
+  depends_on:
+    - backend
+  ports:
+    - "3000:3000"
+  volumes:
+    - ./dicom-frontend:/app  # Make sure this folder exists
+  working_dir: /app
+  command: >
+    sh -c "npm install && npm start"  # Adjust if needed for Next.js/Vue
 
-  flask:
-    build: ./python-pydicom-ms
-    container_name: dicom-flask
-    restart: always
-    depends_on:
-      - db
-    environment:
-      FLASK_ENV: production
-    volumes:
-      - ./python-pydicom-ms/uploads:/app/uploads
-    ports:
-      - "5001:5001"
 
 volumes:
   db_data:
