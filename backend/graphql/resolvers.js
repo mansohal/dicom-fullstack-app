@@ -98,4 +98,9 @@ const resolvers = {
     }
 };
 
+// const updatedFile = await File.update(
+//     { PatientName: metadata.PatientName },
+//     { where: { FilePath } }
+// );
+
 module.exports = resolvers;

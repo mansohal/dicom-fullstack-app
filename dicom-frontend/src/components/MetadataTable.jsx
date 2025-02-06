@@ -160,6 +160,7 @@ const MetadataTable = ({ metadata }) => {
             <td>Series Description</td>
             <td>{metadata.SeriesDescription || "N/A"}</td>
           </tr>
+        
         </tbody>
       </table>
 
