@@ -1,3 +1,4 @@
+
 services:
   db:
     image: mysql:5.7
@@ -5,11 +6,15 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: Forrestgump1
-      MYSQL_DATABASE: dicomdb  # Matches Workbench
+      MYSQL_DATABASE: dicomdb
+      MYSQL_USER: manpreet
+      MYSQL_PASSWORD: ehmeristorage1
     ports:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+    networks:
+      - dicom_network
 
   backend:
     build: ./backend
@@ -18,47 +23,61 @@ services:
     depends_on:
       - db
     environment:
-      DB_HOST: db  # Use 'db' (matches service name)
+      DB_HOST: dicom-db  # ✅ Use Service Name, NOT 127.0.0.1
       DB_USER: manpreet
       DB_PASSWORD: ehmeristorage1
       DB_NAME: dicomdb
     volumes:
-      - ./backend/uploads:/app/uploads
+      - shared_uploads:/shared/uploads
     ports:
-      - "4000:4000"
+      - "0.0.0.0:4000:4000"
+    working_dir: /app
     command: >
-      sh -c "until nc -z db 3306; do sleep 3; done && node index.js"
+      sh -c "until nc -z dicom-db 3306; do sleep 3; done && node index.js"
+    networks:
+      - dicom_network
 
-    flask:
-      build: ./python-pydicom-ms
-      container_name: dicom-flask
-      restart: always
-      depends_on:
-        - backend
-      ports:
-        - "5001:5001"  # Ensure it matches what your Flask app expects
-      working_dir: /app
-      volumes:
-        - ./python-pydicom-ms:/app
-      command: >
-        sh -c "pip install -r requirements.txt && python app.py"
-
+  flask:
+    build: ./python-pydicom-ms
+    container_name: dicom-flask
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "0.0.0.0:5001:5001"
+    working_dir: /app
+    volumes:
+      - shared_uploads:/shared/uploads
+    environment:
+      - FLASK_ENV=production  # Ensures Flask runs properly in Docker
+      - PYTHONUNBUFFERED=1    # Avoids buffering output in logs
+    command: >
+      sh -c "pip install -r requirements.txt && python app.py"
+    networks:
+      - dicom_network
 
   frontend:
-  build: ./dicom-frontend  # Path to frontend (React/Next.js/Vue)
-  container_name: dicom-frontend
-  restart: always
-  depends_on:
-    - backend
-  ports:
-    - "3000:3000"
-  volumes:
-    - ./dicom-frontend:/app  # Make sure this folder exists
-  working_dir: /app
-  command: >
-    sh -c "npm install && npm start"  # Adjust if needed for Next.js/Vue
+    build: ./dicom-frontend
+    container_name: dicom-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "0.0.0.0:3000:3000"
+    volumes:
+      - ./dicom-frontend:/app
+    working_dir: /app
+    command: >
+      sh -c "npm install --legacy-peer-deps && npm start"
+    networks:
+      - dicom_network
 
+networks:
+  dicom_network:
+    driver: bridge
 
 volumes:
   db_data:
+    driver: local
+  shared_uploads:
     driver: local

@@ -1,3 +1,6 @@
+
+/////////////////////////////////////////newone(((((((((((((((((((((())))))))))))))))))))))
+
 const { Patient, Study, Modality, Series, File } = require("../models");
 const axios = require("axios");
 const FormData = require("form-data");
@@ -19,46 +22,33 @@ const resolvers = {
                 console.log(`Uploading DICOM file: ${FilePath}`);
 
                 // Ensure required entities exist
-                const patientExists = await Patient.findByPk(idPatient);
-                const studyExists = await Study.findByPk(idStudy);
-                const seriesExists = await Series.findByPk(idSeries);
+                const patient = await Patient.findByPk(idPatient);
+                const study = await Study.findByPk(idStudy);
+                const series = await Series.findByPk(idSeries);
 
-                if (!patientExists || !studyExists || !seriesExists) {
+                if (!patient || !study || !series) {
                     throw new Error("Patient, Study, or Series does not exist in DB.");
                 }
 
-                // Extract filename from FilePath
                 const actualFilename = path.basename(FilePath);
+                const backendFilePath = path.join("/shared/uploads", actualFilename);
+                const flaskUploadsPath = backendFilePath;
 
-                // Backend file location (where the file is initially stored)
-                const backendFilePath = path.join(__dirname, "..", FilePath);
+                console.log(`Ensuring file is available for Flask at ${flaskUploadsPath}`);
 
-                // Flask uploads directory (where Flask expects the file)
-                const flaskUploadsPath = path.join(__dirname, "..", "..", "python-pydicom-ms", "uploads", actualFilename);
-
-                console.log(`Moving file from backend storage to Flask uploads: ${flaskUploadsPath}`);
-
-                // Ensure Flask's upload directory exists before moving the file
-                if (!fs.existsSync(path.dirname(flaskUploadsPath))) {
-                    fs.mkdirSync(path.dirname(flaskUploadsPath), { recursive: true });
+                // Ensure file exists in the shared volume
+                if (!fs.existsSync(backendFilePath)) {
+                    throw new Error(`File not found in backend storage: ${backendFilePath}`);
                 }
-
-                // Move the file from backend to Flask's directory
-                fs.renameSync(backendFilePath, flaskUploadsPath);
-
-                console.log(`File successfully moved to Flask uploads: ${flaskUploadsPath}`);
-
-                // Store the correct relative path in MySQL
-                const storedFilePath = `uploads/${actualFilename}`;
 
                 const newFile = await File.create({
                     idPatient,
                     idStudy,
                     idSeries,
-                    FilePath: storedFilePath
+                    FilePath: `uploads/${actualFilename}`
                 });
 
-                console.log(`File uploaded & saved in DB: ${storedFilePath}`);
+                console.log(`File uploaded & saved in DB: ${FilePath}`);
                 return newFile;
             } catch (error) {
                 console.error("Error uploading DICOM file:", error.message);
@@ -68,47 +58,27 @@ const resolvers = {
 
         extractDicomMetadata: async (_, { FilePath }) => {
             try {
-                console.log(`Metadata extraction request for FilePath: ${FilePath}`);
+                console.log(`Extracting metadata for FilePath: ${FilePath}`);
 
-                // Fetch File from Database
                 const fileRecord = await File.findOne({ where: { FilePath } });
                 if (!fileRecord) {
-                    throw new Error(`❌ FilePath not found in database: ${FilePath}`);
+                    throw new Error(`FilePath not found in database: ${FilePath}`);
                 }
 
-                // Define expected paths
-                const backendFilePath = path.join(__dirname, "..", fileRecord.FilePath);
-                const flaskUploadsPath = path.join(__dirname, "..", "..", "python-pydicom-ms", fileRecord.FilePath);
+                const flaskUploadsPath = path.join("/shared/uploads", path.basename(FilePath));
 
-                console.log(`Checking file at Backend Path: ${backendFilePath}`);
-                console.log(`Flask uploads expected Path: ${flaskUploadsPath}`);
+                console.log(`Checking file at Flask Path: ${flaskUploadsPath}`);
 
-                // Ensure Flask's `uploads/` directory exists
-                if (!fs.existsSync(path.dirname(flaskUploadsPath))) {
-                    fs.mkdirSync(path.dirname(flaskUploadsPath), { recursive: true });
-                }
-
-                // If the file is missing in Flask `uploads/`, move it from backend storage
                 if (!fs.existsSync(flaskUploadsPath)) {
-                    console.warn(`File missing in Flask uploads. Moving from backend storage.`);
-
-                    if (!fs.existsSync(backendFilePath)) {
-                        throw new Error(`File is missing in both backend & Flask: ${backendFilePath}`);
-                    }
-
-                    fs.renameSync(backendFilePath, flaskUploadsPath);
-                    console.log(`File successfully moved to Flask uploads: ${flaskUploadsPath}`);
-                } else {
-                    console.log(`File already exists in Flask uploads.`);
+                    throw new Error(`File missing in Flask uploads: ${flaskUploadsPath}`);
                 }
 
-                // Send the file to Flask for metadata extraction
                 console.log(`Sending file to Flask API for metadata extraction.`);
                 const formData = new FormData();
                 formData.append("file", fs.createReadStream(flaskUploadsPath));
 
                 const response = await axios.post(
-                    "http://localhost:5001/extract-metadata",
+                    "http://dicom-flask:5001/extract-metadata",
                     formData,
                     { headers: { ...formData.getHeaders() } }
                 );
@@ -120,7 +90,6 @@ const resolvers = {
                 }
 
                 return response.data.metadata;
-
             } catch (error) {
                 console.error("GraphQL Error extracting DICOM metadata:", error.message);
                 throw new Error("Failed to extract metadata");

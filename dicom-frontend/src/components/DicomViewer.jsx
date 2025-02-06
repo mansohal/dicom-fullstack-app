@@ -123,10 +123,18 @@ const DicomViewer = ({ filePath }) => {
     console.log("Loading DICOM Image:", correctedPath);
 
     // Corrected Image URL
+    // const IMAGE_BASE_URL = process.env.DOCKER_ENV
+    //         ? "http://dicom-flask:5001"
+    //         : "http://localhost:5001";
     const imageId = `wadouri:http://localhost:4000/${correctedPath}`;
+    // const imageId = `wadouri:http://dicom-flask:5001/${correctedPath}`;
+    // const IMAGE_BASE_URL = "http://dicom-flask:5001";
+
+    // const imageId = `wadouri:${IMAGE_BASE_URL}/${correctedPath}`;
 
     // Debug: Check if the image actually exists on the backend
     fetch(`http://localhost:4000/${correctedPath}`)
+    // fetch(`${IMAGE_BASE_URL}/${correctedPath}`)
       .then(response => {
         if (!response.ok) {
           console.error("Image not found on server:", correctedPath);

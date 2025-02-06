@@ -54,6 +54,19 @@ const DicomUploader = () => {
     }
   };
 
+//   const handleDownload = (fileName) => {
+//     // ✅ Use Different URL Based on Docker Mode
+//     const DOWNLOAD_BASE_URL = process.env.DOCKER_ENV
+//         ? "http://dicom-backend:4000"
+//         : "http://localhost:4000"; 
+
+//     const downloadUrl = `${DOWNLOAD_BASE_URL}/download/${fileName}`;
+    
+//     console.log(`Downloading file from: ${downloadUrl}`);
+//     window.open(downloadUrl, "_blank");
+// };
+
+
   const fetchMetadata = async () => {
     if (!filePath) {
         console.error("File path is missing.");

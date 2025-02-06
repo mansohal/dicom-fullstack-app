@@ -56,9 +56,11 @@ const typeDefs = gql`
     }
 
     type Mutation {
-        uploadDicomFile(idPatient: Int!, idStudy: Int!, idSeries: Int!, FilePath: String!): File
-        extractDicomMetadata(FilePath: String!): DicomMetadata
-    }
+    uploadDicomFile(idPatient: Int!, idStudy: Int!, idSeries: Int!, idModality: Int!, FilePath: String!): File
+    extractDicomMetadata(FilePath: String!): DicomMetadata
+}
+
+
 `;
 
 module.exports = typeDefs;

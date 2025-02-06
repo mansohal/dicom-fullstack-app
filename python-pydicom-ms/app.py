@@ -2,32 +2,33 @@ from flask import Flask, request, jsonify
 import pydicom
 import os
 
-UPLOAD_FOLDER = "uploads"
+# Detect Environment Mode (Docker vs. Local)
+DOCKER_MODE = os.getenv("DOCKER_MODE", "false").lower() == "true"
+
+# Set Upload Folder Based on Environment
+UPLOAD_FOLDER = "/shared/uploads" if DOCKER_MODE else "uploads"
 ALLOWED_EXTENSIONS = {"dcm"}
 
 # Ensure upload directory exists
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-
 def allowed_file(filename):
     """ Check if the file has a valid DICOM extension """
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 @app.route("/extract-metadata", methods=["POST"])
 def extract_metadata():
     """Extract metadata from an uploaded DICOM file"""
 
     print("Incoming Request Data:")
-    print("Form Data:", request.form)
-    print("Files:", request.files)
-    print("Request Content-Type:", request.content_type)
+    print("🔹 Form Data:", request.form)
+    print("🔹 Files:", request.files)
+    print("🔹 Request Content-Type:", request.content_type)
 
-    # Check if the request contains a file
+    # Check if a file is present in the request
     if "file" not in request.files:
         print("No file found in request!")
         return jsonify({"error": "No file part"}), 400
@@ -41,7 +42,7 @@ def extract_metadata():
     if file and allowed_file(file.filename):
         file_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
 
-        print("Saving file to:", file_path)  # Debugging line
+        print(f"Saving file to: {file_path}")  # Debugging log
         file.save(file_path)
 
         try:
@@ -68,6 +69,6 @@ def extract_metadata():
 
     return jsonify({"error": "Invalid file format"}), 400
 
-
 if __name__ == "__main__":
+    print(f"Starting Flask server in {'DOCKER' if DOCKER_MODE else 'LOCAL'} mode")
     app.run(host="0.0.0.0", port=5001, debug=True)

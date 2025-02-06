@@ -1,0 +1,10 @@
+{
+    "development": {
+      "username": "manpreet",
+      "password": "ehmeristorage1",
+      "database": "dicomdb",
+      "host": "dicom-db",
+      "dialect": "mysql"
+    }
+  }
+  
