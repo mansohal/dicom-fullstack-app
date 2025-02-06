@@ -73,9 +73,14 @@ const resolvers = {
                 // Fetch File from Database
                 const fileRecord = await File.findOne({ where: { FilePath } });
                 if (!fileRecord) {
-                    throw new Error(`❌ FilePath not found in database: ${FilePath}`);
+                    throw new Error(`FilePath not found in database: ${FilePath}`);
                 }
 
+                // **Step 2: Update file metadata in MySQL**
+                // const updatedFile = await File.update(
+                // { PatientName: metadata.PatientName, StudyDescription: metadata.StudyDescription },
+                // { where: { FilePath } }
+                // );
                 // Define expected paths
                 const backendFilePath = path.join(__dirname, "..", fileRecord.FilePath);
                 const flaskUploadsPath = path.join(__dirname, "..", "..", "python-pydicom-ms", fileRecord.FilePath);
@@ -128,5 +133,10 @@ const resolvers = {
         }
     }
 };
+
+// const updatedFile = await File.update(
+//     { PatientName: metadata.PatientName },
+//     { where: { FilePath } }
+// );
 
 module.exports = resolvers;

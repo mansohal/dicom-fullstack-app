@@ -1,7 +1,7 @@
 const { Sequelize } = require("sequelize");
 
 const sequelize = new Sequelize("dicomdb", "manpreet", "ehmeristorage1", {
-    host: "dicom-db",
+    host: "localhost",
     dialect: "mysql",
     logging: false
 });
